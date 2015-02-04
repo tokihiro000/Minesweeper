@@ -18,8 +18,10 @@ int clear_check() {
   int i ,j;
     for(i = 1; i < table_size + 1; i++) {
       for(j = 1; j < table_size + 1; j++) {
-	if (mine_matrix[i][j] == UNKOWN_CELL)
-	  return 1;
+	if (mine_matrix_answer[i][j] < MINE_CELL) {
+	  if (mine_matrix[i][j] == UNKOWN_CELL || mine_matrix[i][j] == CHECK_CELL)
+	    return 1;
+	}
     }
   }
     return 0;
@@ -182,9 +184,11 @@ void initialize() {
 int main(void) {
   int i;
 
+
   table_size = 5;
   num_of_mine = 5;
   initialize();
+  display_answer();
   display_mine_matrix();
   game_start();
 }
