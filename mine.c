@@ -16,6 +16,28 @@ int table_size, num_of_mine;
 int mine_matrix[ROW_MAX + 2][COLUMN_MAX + 2], mine_matrix_answer[ROW_MAX + 2][COLUMN_MAX + 2];
 char row[ROW_MAX + 1] = "abcdefghijklmnopqrstuvwxyz";
 
+
+void open_point(int x, int y) {
+  // ゲームエリア外は無視 
+  if ( x == 0 || y == 0 || x == (table_size + 1) || y == (table_size + 1) ) return;
+
+  mine_matrix[x][y] = mine_matrix_answer[x][y];
+  if ( mine_matrix_answer[x][y] == 0 ) {
+    // 開いた"0"マスには1000を入れる(答えの方)
+    mine_matrix_answer[x][y] = 1000;
+    // 地雷が無いマスの8近傍を確認する
+    open_point(x - 1, y);
+    open_point(x + 1, y);
+    open_point(x    , y - 1);
+    open_point(x    , y + 1);
+    open_point(x - 1, y + 1);
+    open_point(x - 1, y - 1);
+    open_point(x + 1, y + 1);
+    open_point(x + 1, y - 1);
+  }
+
+}
+
 int clear_check() {
   int i ,j;
     for(i = 1; i < table_size + 1; i++) {
@@ -66,8 +88,10 @@ void display_mine_matrix() {
 	printf("? ");
       else if (mine_matrix[j][i] == CHECK_CELL)
 	printf("x ");
+      else if (mine_matrix[j][i] == 1000)
+        printf("0 ");
       else
-	printf("%d ", mine_matrix[j][i]);
+        printf("%d ", mine_matrix[j][i]);
     }
     puts("");
   }
@@ -80,26 +104,29 @@ void game_start() {
   while(1){
     printf("選択する列•行を入力して下さい:\n");
 
+    memset(in_char, 0x00, 4);
     in_count = 0;
     while ((c = getchar()) != EOF) {
       if (c == '\n') break;
       if ( in_count < 3) {
-	in_char[in_count] = c;
-	in_count += 1;
+        in_char[in_count] = c;
+        in_count += 1;
       }
     }
 
     if(in_count < 2) { printf("正しく入力して下さい\n"); continue; }
-    else { in_char[in_count] = '\0'; }
 
+    x = 0; y = 0;
     // x座標を特定
     for(i = 0; i < 27; i++) { if ( in_char[0] == row[i]) { x = (i + 1); } }
+    if(x == 0) { printf("x座標が不正です\n"); continue; }
     // y座標を特定
     y = ( strtol(&in_char[1], &e, 10) + 1);
+    if(y == 0) { printf("y座標が不正です\n"); continue; }
     // 座標位置をチェック
     if(x > table_size || y > table_size) { printf("枠外です\n"); continue; }
     // 指定座標がまだ開かれていないかをチェック
-    if(mine_matrix[x][y] != UNKOWN_CELL && mine_matrix[x][y] != CHECK_CELL) {
+   if(mine_matrix[x][y] != UNKOWN_CELL && mine_matrix[x][y] != CHECK_CELL) {
       printf("その座標はすでに開かれています\n");
       continue;
     }
@@ -116,7 +143,7 @@ void game_start() {
     case 'o':
       // 指定座標に地雷なし && 指定座標が地雷チェックされてない
       if( mine_matrix_answer[x][y] < MINE_CELL && mine_matrix[x][y] != CHECK_CELL) {
-        mine_matrix[x][y] = mine_matrix_answer[x][y];
+        open_point(x, y);
         display_mine_matrix();
       // 指定座標が地雷チェックされている
       } else if (mine_matrix[x][y] == CHECK_CELL) {
@@ -160,15 +187,16 @@ void game_start() {
   }
 }
 
-int get_number_from_stdin() {
-  char c, *e, field[3];
+int get_number_from_stdin(int num_of_digits) {
+  char c, *e, *field;
   int count, n;
 
+  field = (char *)malloc(sizeof(char *) * (num_of_digits + 1));
   count = 0;
   while ((c = getchar()) != EOF) {
     if (c == '\n') break;
     if (!isdigit(c)) { printf("10進数で入力して下さい\n"); exit(0);}
-    if ( count < 2) {
+    if ( count < num_of_digits ) {
       field[count] = c;
       count += 1;
     }
@@ -176,32 +204,34 @@ int get_number_from_stdin() {
   field[count] = '\0';
 
   n = strtol(field, &e, 10);
+  free(field);
 
   return n;
 }
+
 void initialize() {
   int i, j, x, y;
 
   printf("n × n のフィールドを作成します\n");
   printf("[%d <= n <= %d]\n", ROW_MIN, ROW_MAX);
   printf("nを入力して下さい：");
-  table_size = get_number_from_stdin();
-  if ( table_size < ROW_MIN || table_size > ROW_MAX ) {
+  table_size = get_number_from_stdin(2);
+  while ( table_size < ROW_MIN || table_size > ROW_MAX ) {
     printf("%d <= n <= %d", ROW_MIN, ROW_MAX);
     printf("で入力してください\n");
-    exit(0);
+    printf("nを入力して下さい：");
+    table_size = get_number_from_stdin(2);
   }
 
-
+  // 地雷の最大数はエリアの20%まで
   printf("地雷の数を入力して下さい\n");
-  printf("[5 <= 地雷の数 <= %d]", table_size);
-  num_of_mine = get_number_from_stdin();
-  if ( table_size < ROW_MIN || table_size > ROW_MAX ) {
-    printf("5 <= 地雷の数 <= %d", table_size);
+  printf("[5 <= 地雷の数 <= %d]", (int)(table_size * table_size * 0.2));
+  num_of_mine = get_number_from_stdin(3);
+  while ( num_of_mine < 5 || num_of_mine > (table_size * table_size * 0.2) ) {
+    printf("5 <= 地雷の数 <= %d", (int)(table_size * table_size * 0.2));
     printf("で入力してください\n");
-    exit(0);
+    num_of_mine = get_number_from_stdin(3);
   }
-
 
   for(i = 0; i < table_size + 2; i++) {
     for(j = 0; j < table_size + 2; j++) {
@@ -215,7 +245,10 @@ void initialize() {
     x = rand() % table_size;
     y = rand() % table_size;
     // 地雷が重複したら選び直し
-    while(mine_matrix_answer[x + 1][y + 1] >= MINE_CELL) { x = rand() % table_size; y = rand() % table_size; }
+    while(mine_matrix_answer[x + 1][y + 1] >= MINE_CELL) {
+      x = rand() % table_size;
+      y = rand() % table_size;
+    }
     // 地雷セット
     mine_matrix_answer[x + 1][y + 1] = MINE_CELL;
     // 地雷の位置から8近傍に対して+1
