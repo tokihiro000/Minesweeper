@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <time.h>
 
 #define ROW_MAX 26
+#define ROW_MIN 5
 #define COLUMN_MAX 26
 #define MINE_CELL 50
 #define CHECK_CELL 150
@@ -11,7 +13,7 @@
 
 
 int table_size, num_of_mine;
-int mine_matrix[ROW_MAX + 1][COLUMN_MAX + 1], mine_matrix_answer[ROW_MAX + 1][COLUMN_MAX + 1];
+int mine_matrix[ROW_MAX + 2][COLUMN_MAX + 2], mine_matrix_answer[ROW_MAX + 2][COLUMN_MAX + 2];
 char row[ROW_MAX + 1] = "abcdefghijklmnopqrstuvwxyz";
 
 int clear_check() {
@@ -73,7 +75,7 @@ void display_mine_matrix() {
 
 void game_start() {
   int i, j, x, y, in_count;
-  char c, open_or_check, in_char[3], *e;
+  char c, open_or_check, in_char[4], *e;
 
   while(1){
     printf("選択する列•行を入力して下さい:\n");
@@ -158,8 +160,48 @@ void game_start() {
   }
 }
 
+int get_number_from_stdin() {
+  char c, *e, field[3];
+  int count, n;
+
+  count = 0;
+  while ((c = getchar()) != EOF) {
+    if (c == '\n') break;
+    if (!isdigit(c)) { printf("10進数で入力して下さい\n"); exit(0);}
+    if ( count < 2) {
+      field[count] = c;
+      count += 1;
+    }
+  }
+  field[count] = '\0';
+
+  n = strtol(field, &e, 10);
+
+  return n;
+}
 void initialize() {
   int i, j, x, y;
+
+  printf("n × n のフィールドを作成します\n");
+  printf("[%d <= n <= %d]\n", ROW_MIN, ROW_MAX);
+  printf("nを入力して下さい：");
+  table_size = get_number_from_stdin();
+  if ( table_size < ROW_MIN || table_size > ROW_MAX ) {
+    printf("%d <= n <= %d", ROW_MIN, ROW_MAX);
+    printf("で入力してください\n");
+    exit(0);
+  }
+
+
+  printf("地雷の数を入力して下さい\n");
+  printf("[5 <= 地雷の数 <= %d]", table_size);
+  num_of_mine = get_number_from_stdin();
+  if ( table_size < ROW_MIN || table_size > ROW_MAX ) {
+    printf("5 <= 地雷の数 <= %d", table_size);
+    printf("で入力してください\n");
+    exit(0);
+  }
+
 
   for(i = 0; i < table_size + 2; i++) {
     for(j = 0; j < table_size + 2; j++) {
@@ -190,18 +232,12 @@ void initialize() {
     mine_matrix_answer[x + 1][y + 2] += 1;
   }
 
-
 }
 
 
 int main(void) {
-  int i;
-
-
-  table_size = 5;
-  num_of_mine = 5;
   initialize();
-  display_answer();
+  // display_answer();
   display_mine_matrix();
   game_start();
 }
