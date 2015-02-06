@@ -112,10 +112,15 @@ void game_start() {
 
     switch(open_or_check) {
     case 'o':
-      // 指定座標に地雷なし
-      if( mine_matrix_answer[x][y] < MINE_CELL) {
+      // 指定座標に地雷なし && 指定座標が地雷チェックされてない
+      if( mine_matrix_answer[x][y] < MINE_CELL && mine_matrix[x][y] != CHECK_CELL) {
         mine_matrix[x][y] = mine_matrix_answer[x][y];
         display_mine_matrix();
+      // 指定座標が地雷チェックされている
+      } else if (mine_matrix[x][y] == CHECK_CELL) {
+        printf("地雷チェックされているので開けません\n");
+        display_mine_matrix();
+        continue;
       }
       // 指定座標に地雷あり
       else {
@@ -126,7 +131,12 @@ void game_start() {
       break;
 
     case 'x':
-      mine_matrix[x][y] = CHECK_CELL;
+      if( mine_matrix[x][y] == CHECK_CELL ) {
+        printf("チェック解除\n");
+        mine_matrix[x][y] = UNKOWN_CELL;
+      } else {
+        mine_matrix[x][y] = CHECK_CELL;
+      }
       display_mine_matrix();
       break;
 
