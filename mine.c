@@ -97,7 +97,10 @@ void game_start() {
     // 座標位置をチェック
     if(x > table_size || y > table_size) { printf("枠外です\n"); continue; }
     // 指定座標がまだ開かれていないかをチェック
-    if(mine_matrix[x][y] != UNKOWN_CELL ) { printf("その座標はすでに開かれています\n"); continue; }
+    if(mine_matrix[x][y] != UNKOWN_CELL && mine_matrix[x][y] != CHECK_CELL) {
+      printf("その座標はすでに開かれています\n");
+      continue;
+    }
 
     printf("開くならoを、地雷チェックはxを入力して下さい:\n");
     open_or_check = '\0';
