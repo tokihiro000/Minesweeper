@@ -10,21 +10,28 @@
 #define MINE_CELL 50
 #define CHECK_CELL 150
 #define UNKOWN_CELL 100
+#define OPENED_CELL 1000
 
-
-int table_size, num_of_mine;
+int table_size, num_of_mine, opened_cell_counter, num_of_normal_cell;
 int mine_matrix[ROW_MAX + 2][COLUMN_MAX + 2], mine_matrix_answer[ROW_MAX + 2][COLUMN_MAX + 2];
-char row[ROW_MAX + 1] = "abcdefghijklmnopqrstuvwxyz";
+char row[] = "abcdefghijklmnopqrstuvwxyz";
 
-
+/*
+*  座標(x, y)のセルを開く関数。
+*  指定座標が"0"ならその周りの座標も開く
+*/
 void open_point(int x, int y) {
   // ゲームエリア外は無視 
   if ( x == 0 || y == 0 || x == (table_size + 1) || y == (table_size + 1) ) return;
+  // 既に開かれているセルの場合も無視
+  if (mine_matrix[x][y] != UNKOWN_CELL) return;
 
   mine_matrix[x][y] = mine_matrix_answer[x][y];
+  opened_cell_counter += 1;
+
   if ( mine_matrix_answer[x][y] == 0 ) {
-    // 開いた"0"マスには1000を入れる(答えの方)
-    mine_matrix_answer[x][y] = 1000;
+    // 開いた"0"マスにはOPENED_CELLを入れる(答えの方)
+    mine_matrix_answer[x][y] = OPENED_CELL;
     // 地雷が無いマスの8近傍を確認する
     open_point(x - 1, y);
     open_point(x + 1, y);
@@ -38,19 +45,22 @@ void open_point(int x, int y) {
 
 }
 
+/*
+*  ゲームがクリアされたかどうかを判定する関数
+*  地雷が入っていないセルの総数と開いたセルの総数が一致したかを確認する
+*/
 int clear_check() {
-  int i ,j;
-    for(i = 1; i < table_size + 1; i++) {
-      for(j = 1; j < table_size + 1; j++) {
-	if (mine_matrix_answer[i][j] < MINE_CELL) {
-	  if (mine_matrix[i][j] == UNKOWN_CELL || mine_matrix[i][j] == CHECK_CELL)
-	    return 1;
-	}
-    }
-  }
+  if (opened_cell_counter == num_of_normal_cell)
     return 0;
+  else
+    return 1;
 }
 
+
+/*
+*  答えを表示する関数(基本的にデバック用)
+*
+*/
 void display_answer() {
   int i, j;
   char str[3];
@@ -72,6 +82,10 @@ void display_answer() {
   }
 }
 
+/*
+*  マインスイーパーの状態を表示する関数
+*
+*/
 void display_mine_matrix() {
   int i, j;
   char str[3];
@@ -88,7 +102,7 @@ void display_mine_matrix() {
 	printf("? ");
       else if (mine_matrix[j][i] == CHECK_CELL)
 	printf("x ");
-      else if (mine_matrix[j][i] == 1000)
+      else if (mine_matrix[j][i] == OPENED_CELL)
         printf("0 ");
       else
         printf("%d ", mine_matrix[j][i]);
@@ -97,8 +111,14 @@ void display_mine_matrix() {
   }
 }
 
+
+/*
+*  ゲームを実行する関数
+*  基本的にここから各関数を呼び出しゲームを行う。
+*/
+
 void game_start() {
-  int i, j, x, y, in_count;
+  int i, x, y, in_count;
   char c, open_or_check, in_char[4], *e;
 
   while(1){
@@ -118,7 +138,7 @@ void game_start() {
 
     x = 0; y = 0;
     // x座標を特定
-    for(i = 0; i < 27; i++) { if ( in_char[0] == row[i]) { x = (i + 1); } }
+    for(i = 0; i < ROW_MAX + 1; i++) { if ( in_char[0] == row[i]) { x = (i + 1); } }
     if(x == 0) { printf("x座標が不正です\n"); continue; }
     // y座標を特定
     y = ( strtol(&in_char[1], &e, 10) + 1);
@@ -187,15 +207,21 @@ void game_start() {
   }
 }
 
+/*
+*  標準入力を受け取る関数
+*
+*/
 int get_number_from_stdin(int num_of_digits) {
   char c, *e, *field;
   int count, n;
 
   field = (char *)malloc(sizeof(char *) * (num_of_digits + 1));
+  if (field == NULL) { printf("メモリを確保できませんでした\n"); exit(EXIT_FAILURE); }
+
   count = 0;
   while ((c = getchar()) != EOF) {
     if (c == '\n') break;
-    if (!isdigit(c)) { printf("10進数で入力して下さい\n"); exit(0);}
+    if (!isdigit(c)) { printf("10進数で入力して下さい\n"); exit(EXIT_FAILURE);}
     if ( count < num_of_digits ) {
       field[count] = c;
       count += 1;
@@ -209,6 +235,10 @@ int get_number_from_stdin(int num_of_digits) {
   return n;
 }
 
+/*
+*  各変数を初期化する関数
+*  フィールドの大きさや地雷の数をここで設定する
+*/
 void initialize() {
   int i, j, x, y;
 
@@ -265,12 +295,14 @@ void initialize() {
     mine_matrix_answer[x + 1][y + 2] += 1;
   }
 
+  opened_cell_counter = 0;
+  num_of_normal_cell = (table_size * table_size) - num_of_mine;
 }
 
 
 int main(void) {
   initialize();
-  // display_answer();
+  display_answer();
   display_mine_matrix();
   game_start();
 }
